@@ -46,7 +46,7 @@ const fs = require('node:fs')
 const mnemonic = fs.readFileSync('.secret').toString().trim()
 require('dotenv').config()
 
-const RPC_URL = process.env.RPC_URl
+const RPC_URL = process.env.RPC_URL
 const APP_ID = process.env.APP_ID
 
 module.exports = {
@@ -74,6 +74,11 @@ module.exports = {
     },
     matic: {
       provider: () => new HDWalletProvider(mnemonic, RPC_URL + APP_ID),
+      network_id: 80001,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+      chainId: 80001,
     },
     //
     // An additional network, but with some advanced options…
