@@ -1,16 +1,45 @@
-import Head from 'next/head'
 import { useState } from 'react'
-import Web3 from 'web3'
+import { usePaymentToken } from '@/hooks'
+import { useWeb3React } from '@web3-react/core'
+
+import Head from 'next/head'
+
 import { Navbar } from '../components'
-import { useData } from '../lib/contexts/data-context'
 
 export default function Home() {
-  const { account, sendPayment, balance } = useData()
+  const { balance, sendPayment } = usePaymentToken()
+  const { account } = useWeb3React()
 
   const [toAddress, setToAddress] = useState('')
   const [amount, setAmount] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | undefined>()
   const [button, setButton] = useState('Send')
+
+  async function handleSendPayment() {
+    setError('')
+    if (!account) {
+      setError('Please connect your wallet')
+    } else if (amount === '') {
+      setError('Please set amount')
+    } else if (toAddress === '') {
+      setError('Please set destination address')
+    } else {
+      setButton('Sending...')
+      const msg = await sendPayment({ amount, toAddress })
+      if (msg === 'Payment success') {
+        setAmount('')
+        setToAddress('')
+        setButton('Payment Success')
+        setTimeout(() => {
+          setButton('Send')
+        }, 1000)
+        setError('')
+      } else {
+        setError(msg)
+        setButton('Send')
+      }
+    }
+  }
 
   return (
     <div className='flex flex-col min-h-screen justify-start bg-gradient-to-b from-gray-800  to-gray-500'>
@@ -25,29 +54,17 @@ export default function Home() {
           <div className='flex flex-col items-center space-y-2'>
             <div className='w-full flex flex-row justify-between'>
               <span className='text-white text-lg text-start'>Send Token</span>
-              <span className='text-white text-base text-start font-bold font-inconsolata'>
-                {balance &&
-                  `Balance: ${Web3.utils.fromWei(
-                    balance.toString(),
-                    'ether',
-                  )} PAY`}
-              </span>
+              <span className='text-white text-base text-start font-bold font-inconsolata'>{balance || '0.0'} PAY</span>
             </div>
             <div className='bg-gray-700 h-20 w-full my-1 border border-gray-600 rounded-3xl flex flex-row justify-between items-center px-4'>
               <div className='flex flex-row items-center space-x-2'>
                 <div className='px-3 py-2 bg-gray-800 rounded-2xl flex flex-row items-center'>
-                  <span className='text-white text-lg font-bold'>
-                    PAY Token
-                  </span>
+                  <span className='text-white text-lg font-bold'>PAY Token</span>
                 </div>
                 <span
                   className='text-white text-base font-bold font-inconsolata cursor-pointer'
                   onClick={() => {
-                    setAmount(
-                      Web3.utils
-                        .fromWei(balance.toString(), 'ether')
-                        .toString(),
-                    )
+                    setAmount(balance)
                   }}
                 >
                   MAX
@@ -62,13 +79,7 @@ export default function Home() {
                 }}
               />
             </div>
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-10 w-10'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='#fff'
-            >
+            <svg xmlns='http://www.w3.org/2000/svg' className='h-10 w-10' fill='none' viewBox='0 0 24 24' stroke='#fff'>
               <path
                 strokeLinecap='round'
                 strokeLinejoin='round'
@@ -90,34 +101,9 @@ export default function Home() {
             <div
               className='h-16 w-full rounded-3xl flex justify-center items-center cursor-pointer'
               style={{ backgroundColor: '#214770' }}
-              onClick={async () => {
-                setError('')
-                if (!account) {
-                  setError('Please connect your wallet')
-                } else if (amount === '') {
-                  setError('Please set amount')
-                } else if (toAddress === '') {
-                  setError('Please set destination address')
-                } else {
-                  setButton('Sending...')
-                  const msg = await sendPayment({ amount, toAddress })
-                  if ((await msg) === 'Payment success') {
-                    setAmount('')
-                    setToAddress('')
-                    setButton('Payment Success')
-                    setTimeout(() => {
-                      setButton('Send')
-                    }, 1000)
-                    setError('')
-                  } else {
-                    setError(msg)
-                  }
-                }
-              }}
+              onClick={handleSendPayment}
             >
-              <span className='font-semibold text-xl text-blue-300'>
-                {button}
-              </span>
+              <span className='font-semibold text-xl text-blue-300'>{button}</span>
             </div>
             {error && <span className='text-red-600 font-bold'>*{error}</span>}
           </div>
